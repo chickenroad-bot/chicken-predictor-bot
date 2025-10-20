@@ -17,8 +17,13 @@ const bot = new Telegraf(BOT_TOKEN);
 // Storage
 let users = {};
 let stats = { total: 0, registered: 0, deposited: 0 };
+let postbackData = {
+  registrations: {},
+  deposits: {},
+  approvedDeposits: {}
+};
 
-// ✅ ALL 5 LANGUAGES ADD KIYE
+// ✅ ALL 5 LANGUAGES
 const languages = {
   en: {
     name: "English",
@@ -33,7 +38,10 @@ const languages = {
     congratulations: "Congratulations, Please Select Your Game Mode For Play:",
     notRegistered: "❌ Sorry, You're Not Registered!\nPlease click the REGISTER button first and complete your registration using our affiliate link.\nAfter successful registration, come back and enter your Player ID.",
     registeredNoDeposit: `🎉 Great, you have successfully completed registration!\n✅ Your account is synchronized with the bot\n💴 To gain access to signals, deposit your account (make a deposit) with at least 600₹ or $6 in any currency\n🕹️ After successfully replenishing your account, click on the CHECK DEPOSIT button and gain access`,
-    limitReached: "You're Reached Your Limited, please try again tomorrow for continue prediction or if you want to continue to deposit again atleast 400₹ or 4$ in any currency"
+    limitReached: "You're Reached Your Limited, please try again tomorrow for continue prediction or if you want to continue to deposit again atleast 400₹ or 4$ in any currency",
+    checking: "🔍 Checking your registration...",
+    verified: "✅ Verification Successful!",
+    depositRequired: "💳 Deposit Required"
   },
   hi: {
     name: "हिंदी",
@@ -45,10 +53,13 @@ const languages = {
     instructions: `1️⃣ अगर "REGISTER" बटन पर क्लिक करने के बाद आप पुराने अकाउंट में आते हैं, तो लॉग आउट करके फिर से बटन पर क्लिक करें\n\n2️⃣ रजिस्ट्रेशन के दौरान प्रोमोकोड दर्ज करें: CLAIM\n\n3️⃣ न्यूनतम 600₹ या 6$ जमा करें`,
     enterPlayerId: "कृपया सत्यापन के लिए अपना Mostbet Player ID दर्ज करें:",
     howToFind: "📝 Player ID कैसे ढूंढें:\n1. Mostbet अकाउंट में लॉगिन करें\n2. प्रोफाइल सेटिंग्स पर जाएं\n3. Player ID नंबर कॉपी करें\n4. यहां पेस्ट करें",
-    congratulations: "बधाई हो, कृपया खेले के लिए अपना गेम मोड चुनें:",
+    congratulations: "बधाई हो, कृपया खेलने के लिए अपना गेम मोड चुनें:",
     notRegistered: "❌ क्षमा करें, आप रजिस्टर्ड नहीं हैं!\nकृपया पहले REGISTER बटन पर क्लिक करें और हमारे एफिलिएट लिंक का उपयोग करके रजिस्ट्रेशन पूरा करें\nसफल रजिस्ट्रेशन के बाद वापस आएं और अपना Player ID दर्ज करें",
     registeredNoDeposit: `🎉 बढ़िया, आपने सफलतापूर्वक रजिस्ट्रेशन पूरा कर लिया है!\n✅ आपका अकाउंट बॉट के साथ सिंक हो गया है\n💴 सिग्नल तक पहुंच प्राप्त करने के लिए, अपने अकाउंट में कम से कम 600₹ या $6 जमा करें\n🕹️ अपना अकाउंट सफलतापूर्वक रिचार्ज करने के बाद, CHECK DEPOSIT बटन पर क्लिक करें`,
-    limitReached: "आप अपनी सीमा तक पहुँच गए हैं, कृपया कल फिर से कोशिश करें या जारी रखने के लिए फिर से कम से कम 400₹ या 4$ जमा करें"
+    limitReached: "आप अपनी सीमा तक पहुँच गए हैं, कृपया कल फिर से कोशिश करें या जारी रखने के लिए फिर से कम से कम 400₹ या 4$ जमा करें",
+    checking: "🔍 आपकी रजिस्ट्रेशन जांची जा रही है...",
+    verified: "✅ सत्यापन सफल!",
+    depositRequired: "💳 जमा आवश्यक"
   },
   bn: {
     name: "বাংলা",
@@ -63,7 +74,10 @@ const languages = {
     congratulations: "অভিনন্দন, খেলার জন্য আপনার গেম মোড নির্বাচন করুন:",
     notRegistered: "❌ দুঃখিত, আপনি নিবন্ধিত নন!\nঅনুগ্রহ করে প্রথমে REGISTER বাটনে ক্লিক করুন এবং আমাদের অ্যাফিলিয়েট লিঙ্ক ব্যবহার করে নিবন্ধন সম্পূর্ণ করুন\nসফল নিবন্ধনের পরে ফিরে আসুন এবং আপনার Player ID লিখুন",
     registeredNoDeposit: `🎉 দুর্দান্ত, আপনি সফলভাবে নিবন্ধন সম্পূর্ণ করেছেন!\n✅ আপনার অ্যাকাউন্ট বটের সাথে সিঙ্ক হয়েছে\n💴 সিগন্যাল অ্যাক্সেস পেতে, আপনার অ্যাকাউন্টে কমপক্ষে 600₹ বা $6 জমা করুন\n🕹️ আপনার অ্যাকাউন্ট সফলভাবে রিচার্জ করার পরে, CHECK DEPOSIT বাটনে ক্লিক করুন এবং অ্যাক্সেস পান`,
-    limitReached: "আপনি আপনার সীমায় পৌঁছেছেন, অনুগ্রহ করে আগামীকাল আবার চেষ্টা করুন বা চালিয়ে যেতে আবার কমপক্ষে 400₹ বা 4$ জমা করুন"
+    limitReached: "আপনি আপনার সীমায় পৌঁছেছেন, অনুগ্রহ করে আগামীকাল আবার চেষ্টা করুন বা চালিয়ে যেতে আবার কমপক্ষে 400₹ বা 4$ জমা করুন",
+    checking: "🔍 আপনার নিবন্ধন পরীক্ষা করা হচ্ছে...",
+    verified: "✅ যাচাইকরণ সফল!",
+    depositRequired: "💳 জমা প্রয়োজন"
   },
   ur: {
     name: "اردو",
@@ -78,7 +92,10 @@ const languages = {
     congratulations: "مبارک ہو، براہ کرم کھیلنے کے لیے اپنا گیم موڈ منتخب کریں:",
     notRegistered: "❌ معذرت، آپ رجسٹرڈ نہیں ہیں!\nبراہ کرم پہلے REGISTER بٹن پر کلک کریں اور ہمارے affiliate link کا استعمال کرتے ہوئے رجسٹریشن مکمل کریں\nکامیاب رجسٹریشن کے بعد واپس آئیں اور اپنا Player ID درج کریں",
     registeredNoDeposit: `🎉 بہت اچھا، آپ نے کامیابی کے ساتھ رجسٹریشن مکمل کر لی ہے!\n✅ آپ کا اکاؤنٹ بوٹ کے ساتھ sync ہو گیا ہے\n💴 سگنلز تک رسائی حاصل کرنے کے لیے، اپنے اکاؤنٹ میں کم از کم 600₹ یا $6 جمع کریں\n🕹️ اپنے اکاؤنٹ کو کامیابی سے ری چارج کرنے کے بعد، CHECK DEPOSIT بٹن پر کلک کریں اور رسائی حاصل کریں`,
-    limitReached: "آپ اپنی حد تک پہنچ گئے ہیں، براہ کرم کل دوبارہ کوشش کریں یا جاری رکھنے کے لیے دوبارہ کم از کم 400₹ یا 4$ جمع کریں"
+    limitReached: "آپ اپنی حد تک پہنچ گئے ہیں، براہ کرم کل دوبارہ کوشش کریں یا جاری رکھنے کے لیے دوبارہ کم از کم 400₹ یا 4$ جمع کریں",
+    checking: "🔍 آپ کی رجسٹریشن چیک کی جا رہی ہے...",
+    verified: "✅ تصدیق کامیاب!",
+    depositRequired: "💳 جمع کرانا ضروری ہے"
   },
   ne: {
     name: "नेपाली",
@@ -93,11 +110,14 @@ const languages = {
     congratulations: "बधाई छ, कृपया खेल्नको लागि आफ्नो खेल मोड चयन गर्नुहोस्:",
     notRegistered: "❌ माफ गर्नुहोस्, तपाईं दर्ता गरिएको छैन!\nकृपया पहिले REGISTER बटन क्लिक गर्नुहोस् र हाम्रो एफिलिएट लिङ्क प्रयोग गरेर दर्ता पूरा गर्नुहोस्\nसफल दर्ता पछि फर्कनुहोस् र आफ्नो Player ID प्रविष्ट गर्नुहोस्",
     registeredNoDeposit: `🎉 राम्रो, तपाईंले सफलतापूर्वक दर्ता पूरा गर्नुभयो!\n✅ तपाईंको खाता बोटसँग सिङ्क भएको छ\n💴 सिग्नलहरू पहुँच प्राप्त गर्न, आफ्नो खातामा कम्तिमा 600₹ वा $6 जम्मा गर्नुहोस्\n🕹️ आफ्नो खाता सफलतापूर्वक रिचार्ज गरेपछि, CHECK DEPOSIT बटन क्लिक गर्नुहोस् र पहुँच प्राप्त गर्नुहोस्`,
-    limitReached: "तपाईं आफ्नो सीमामा पुग्नुभयो, कृपया भोली फेरि प्रयास गर्नुहोस् वा जारी राख्नका लागि फेरि कम्तिमा 400₹ वा 4$ जम्मा गर्नुहोस्"
+    limitReached: "तपाईं आफ्नो सीमामा पुग्नुभयो, कृपया भोली फेरि प्रयास गर्नुहोस् वा जारी राख्नका लागि फेरि कम्तिमा 400₹ वा 4$ जम्मा गर्नुहोस्",
+    checking: "🔍 तपाईंको दर्ता जाँच गरिदैछ...",
+    verified: "✅ सत्यापन सफल!",
+    depositRequired: "💳 जम्मा आवश्यक"
   }
 };
 
-// ✅ ALL PREDICTION IMAGES ADD KIYE
+// ✅ ALL PREDICTION IMAGES
 const predictionImages = {
   easy: [
     { url: "https://i.postimg.cc/dQS5pr0N/IMG-20251020-095836-056.jpg", accuracy: "85%" },
@@ -160,7 +180,109 @@ const predictionImages = {
   ]
 };
 
-// Admin notification function
+// ✅ 1WIN POSTBACK HANDLER
+app.get('/lwin-postback', async (req, res) => {
+  try {
+    const { player_id, status, amount } = req.query;
+    
+    console.log('📥 1Win Postback Received:', {
+      player_id,
+      status, 
+      amount,
+      query: req.query
+    });
+
+    if (!player_id) {
+      return res.status(400).json({ error: 'Player ID missing' });
+    }
+
+    if (status === 'registration') {
+      postbackData.registrations[player_id] = {
+        player_id,
+        status: 'registered',
+        registeredAt: new Date().toISOString(),
+        deposited: false,
+        depositAmount: 0
+      };
+      console.log(`✅ Registration recorded: ${player_id}`);
+      
+    } else if (status === 'fdp') {
+      postbackData.deposits[player_id] = {
+        player_id,
+        status: 'deposited',
+        depositAmount: amount || 0,
+        depositedAt: new Date().toISOString()
+      };
+      
+      if (!postbackData.registrations[player_id]) {
+        postbackData.registrations[player_id] = {
+          player_id,
+          status: 'registered',
+          registeredAt: new Date().toISOString(),
+          deposited: true,
+          depositAmount: amount || 0
+        };
+      } else {
+        postbackData.registrations[player_id].deposited = true;
+        postbackData.registrations[player_id].depositAmount = amount || 0;
+      }
+      console.log(`💰 Deposit recorded: ${player_id}, Amount: ${amount}`);
+      
+    } else if (status === 'fd_approved') {
+      postbackData.approvedDeposits[player_id] = {
+        player_id,
+        status: 'approved',
+        approvedAmount: amount || 0,
+        approvedAt: new Date().toISOString()
+      };
+      console.log(`🎉 Deposit approved: ${player_id}, Amount: ${amount}`);
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Postback processed successfully',
+      player_id,
+      status
+    });
+
+  } catch (error) {
+    console.error('❌ Postback error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ✅ Player verification function
+async function verifyPlayerWithPostback(playerId) {
+  try {
+    const registration = postbackData.registrations[playerId];
+    const deposit = postbackData.deposits[playerId];
+    const approvedDeposit = postbackData.approvedDeposits[playerId];
+    
+    const response = {
+      player_id: playerId,
+      isRegistered: !!registration,
+      hasDeposit: !!deposit,
+      isApproved: !!approvedDeposit,
+      registrationData: registration,
+      depositData: deposit,
+      approvedData: approvedDeposit
+    };
+    
+    console.log('📊 Verification result:', response);
+    return response;
+    
+  } catch (error) {
+    console.error('❌ Verification error:', error.message);
+    return {
+      isRegistered: false,
+      hasDeposit: false,
+      isApproved: false,
+      error: 'Verification failed'
+    };
+  }
+}
+
+// ✅ Admin notification function
 async function sendAdminNotification(message) {
   try {
     await bot.telegram.sendMessage(ADMIN_CHAT_ID, 
@@ -175,7 +297,7 @@ async function sendAdminNotification(message) {
   }
 }
 
-// Start command - Language selection
+// ✅ Start command - Language selection
 bot.start(async (ctx) => {
   const userId = ctx.from.id.toString();
   
@@ -191,39 +313,27 @@ bot.start(async (ctx) => {
     };
     stats.total++;
     
-    // Send admin notification
     await sendAdminNotification(`🆕 NEW USER STARTED\nUser ID: ${userId}`);
   }
 
-  // Show language selection with ALL 5 LANGUAGES
   await ctx.replyWithPhoto(
     'https://i.postimg.cc/4Nh2kPnv/Picsart-25-10-16-14-41-43-751.jpg',
     {
       caption: languages[users[userId].language].selectLanguage,
       reply_markup: {
         inline_keyboard: [
-          [
-            { text: `${languages.en.flag} ${languages.en.name}`, callback_data: 'lang_en' }
-          ],
-          [
-            { text: `${languages.hi.flag} ${languages.hi.name}`, callback_data: 'lang_hi' }
-          ],
-          [
-            { text: `${languages.bn.flag} ${languages.bn.name}`, callback_data: 'lang_bn' }
-          ],
-          [
-            { text: `${languages.ur.flag} ${languages.ur.name}`, callback_data: 'lang_ur' }
-          ],
-          [
-            { text: `${languages.ne.flag} ${languages.ne.name}`, callback_data: 'lang_ne' }
-          ]
+          [{ text: `${languages.en.flag} ${languages.en.name}`, callback_data: 'lang_en' }],
+          [{ text: `${languages.hi.flag} ${languages.hi.name}`, callback_data: 'lang_hi' }],
+          [{ text: `${languages.bn.flag} ${languages.bn.name}`, callback_data: 'lang_bn' }],
+          [{ text: `${languages.ur.flag} ${languages.ur.name}`, callback_data: 'lang_ur' }],
+          [{ text: `${languages.ne.flag} ${languages.ne.name}`, callback_data: 'lang_ne' }]
         ]
       }
     }
   );
 });
 
-// Language selection handler
+// ✅ Language selection handler
 bot.action(/lang_(.+)/, async (ctx) => {
   const userId = ctx.from.id.toString();
   const lang = ctx.match[1];
@@ -240,19 +350,15 @@ bot.action(/lang_(.+)/, async (ctx) => {
       caption: `${languages[lang].step1}\n\n${languages[lang].mustNew}\n\n${languages[lang].instructions}`,
       reply_markup: {
         inline_keyboard: [
-          [
-            { text: "📲 Register", url: AFFILIATE_LINK }
-          ],
-          [
-            { text: "🔍 Check Registration", callback_data: 'check_registration' }
-          ]
+          [{ text: "📲 Register", url: AFFILIATE_LINK }],
+          [{ text: "🔍 Check Registration", callback_data: 'check_registration' }]
         ]
       }
     }
   );
 });
 
-// Check Registration button
+// ✅ Check Registration button
 bot.action('check_registration', async (ctx) => {
   const userId = ctx.from.id.toString();
   const lang = users[userId].language;
@@ -262,71 +368,87 @@ bot.action('check_registration', async (ctx) => {
   );
 });
 
-// Player ID input handler
+// ✅ Player ID input handler - WITH POSTBACK VERIFICATION
 bot.on('text', async (ctx) => {
   const userId = ctx.from.id.toString();
   const text = ctx.message.text;
   const lang = users[userId].language;
   
-  // Check if it's a Player ID (numeric)
   if (/^\d+$/.test(text)) {
     users[userId].playerId = text;
     
-    // ✅ YAHAN PE APNA POSTBACK URL CALL KARENGE
-    // Temporary simulation
-    const isRegistered = true; // Postback response se aayega
-    const hasDeposit = true; // Postback response se aayega
+    const loadingMsg = await ctx.reply(languages[lang].checking);
     
-    if (isRegistered && hasDeposit) {
-      stats.registered++;
-      stats.deposited++;
-      users[userId].registered = true;
-      users[userId].deposited = true;
+    try {
+      const verificationResult = await verifyPlayerWithPostback(text);
       
-      await sendAdminNotification(`✅ USER REGISTERED & DEPOSITED\nUser ID: ${userId}\nPlayer ID: ${text}`);
+      await ctx.deleteMessage(loadingMsg.message_id);
       
+      if (verificationResult.isRegistered && verificationResult.hasDeposit) {
+        stats.registered++;
+        stats.deposited++;
+        users[userId].registered = true;
+        users[userId].deposited = true;
+        
+        await sendAdminNotification(
+          `✅ USER VERIFIED & DEPOSITED\n` +
+          `User ID: ${userId}\n` +
+          `Player ID: ${text}\n` +
+          `Deposit Amount: ${verificationResult.depositData?.depositAmount || 'N/A'}`
+        );
+        
+        await ctx.reply(
+          `${languages[lang].verified}\n\n${languages[lang].congratulations}`,
+          Markup.inlineKeyboard([
+            [Markup.button.callback('🎯 Easy', 'mode_easy')],
+            [Markup.button.callback('⚡ Medium', 'mode_medium')],
+            [Markup.button.callback('🔥 Hard', 'mode_hard')],
+            [Markup.button.callback('💀 Hardcore', 'mode_hardcore')]
+          ])
+        );
+      } else if (verificationResult.isRegistered && !verificationResult.hasDeposit) {
+        stats.registered++;
+        users[userId].registered = true;
+        
+        await ctx.reply(
+          languages[lang].registeredNoDeposit,
+          Markup.inlineKeyboard([
+            [Markup.button.url("💳 Deposit", AFFILIATE_LINK)],
+            [Markup.button.callback("🔍 Check Deposit", "check_deposit")]
+          ])
+        );
+      } else {
+        await ctx.reply(
+          languages[lang].notRegistered,
+          Markup.inlineKeyboard([
+            [Markup.button.url("📲 Register Now", AFFILIATE_LINK)]
+          ])
+        );
+      }
+    } catch (error) {
+      await ctx.deleteMessage(loadingMsg.message_id);
       await ctx.reply(
-        languages[lang].congratulations,
+        "❌ Verification failed. Please try again.",
         Markup.inlineKeyboard([
-          [Markup.button.callback('🎯 Easy', 'mode_easy')],
-          [Markup.button.callback('⚡ Medium', 'mode_medium')],
-          [Markup.button.callback('🔥 Hard', 'mode_hard')],
-          [Markup.button.callback('💀 Hardcore', 'mode_hardcore')]
-        ])
-      );
-    } else if (isRegistered && !hasDeposit) {
-      stats.registered++;
-      users[userId].registered = true;
-      
-      await ctx.reply(
-        languages[lang].registeredNoDeposit,
-        Markup.inlineKeyboard([
-          [Markup.button.url("💳 Deposit", AFFILIATE_LINK)],
-          [Markup.button.callback("🔍 Check Deposit", "check_deposit")]
-        ])
-      );
-    } else {
-      await ctx.reply(
-        languages[lang].notRegistered,
-        Markup.inlineKeyboard([
-          [Markup.button.url("📲 Register Now", AFFILIATE_LINK)]
+          [Markup.button.callback("🔄 Try Again", "check_registration")]
         ])
       );
     }
   }
 });
 
-// Prediction modes
+// ✅ Prediction modes
 bot.action(/mode_(.+)/, async (ctx) => {
   const userId = ctx.from.id.toString();
   const mode = ctx.match[1];
   const lang = users[userId].language;
   
-  // Get random image from selected mode
   const modeImages = predictionImages[mode];
   const randomImage = modeImages[Math.floor(Math.random() * modeImages.length)];
   
-  // Send prediction image with BET text and accuracy
+  users[userId].currentMode = mode;
+  users[userId].predictionsUsed = 1;
+  
   await ctx.replyWithPhoto(
     randomImage.url,
     {
@@ -341,7 +463,7 @@ bot.action(/mode_(.+)/, async (ctx) => {
   );
 });
 
-// Next prediction
+// ✅ Next prediction
 bot.action(/next_(.+)/, async (ctx) => {
   const userId = ctx.from.id.toString();
   const mode = ctx.match[1];
@@ -358,13 +480,11 @@ bot.action(/next_(.+)/, async (ctx) => {
       ])
     );
   } else {
-    // Get next random image
     const modeImages = predictionImages[mode];
     const randomImage = modeImages[Math.floor(Math.random() * modeImages.length)];
     
-    // Send next prediction
     await ctx.editMessageCaption(
-      `👆 BET 👆\n\n("CASH OUT" at this value or before)\nACCURACY:- ${randomImage.accuracy}\n\nStep: ${users[userId].predictionsUsed + 1}/20`,
+      `👆 BET 👆\n\n("CASH OUT" at this value or before)\nACCURACY:- ${randomImage.accuracy}\n\nStep: ${users[userId].predictionsUsed}/20`,
       {
         reply_markup: {
           inline_keyboard: [
@@ -377,7 +497,7 @@ bot.action(/next_(.+)/, async (ctx) => {
   }
 });
 
-// Menu button
+// ✅ Menu button
 bot.action('prediction_menu', async (ctx) => {
   const userId = ctx.from.id.toString();
   const lang = users[userId].language;
@@ -393,28 +513,32 @@ bot.action('prediction_menu', async (ctx) => {
   );
 });
 
-// Daily motivational messages
+// ✅ Check Deposit button
+bot.action('check_deposit', async (ctx) => {
+  const userId = ctx.from.id.toString();
+  const lang = users[userId].language;
+  
+  await ctx.reply(
+    `${languages[lang].enterPlayerId}\n\n${languages[lang].howToFind}\n\n🔢 Enter your Player ID now:`
+  );
+});
+
+// ✅ Daily motivational messages
 cron.schedule('0 9 * * *', async () => {
+  const messages = {
+    en: "You're missing your chance to win big! 🚀\nUse /start to get today's predictions now!",
+    hi: "आप बड़ी जीत का मौका गंवा रहे हैं! 🚀\nआज की भविष्यवाणियाँ प्राप्त करने के लिए /start का उपयोग करें!",
+    bn: "আপনি বড় জয়ের সুযোগ হারাচ্ছেন! 🚀\nআজকের ভবিষ্যদ্বাণী পেতে /start ব্যবহার করুন!",
+    ur: "آپ بڑی جیت کا موقع کھو رہے ہیں! 🚀\nآج کی پیشن گوئیاں حاصل کرنے کے لیے /start استعمال کریں!",
+    ne: "तपाईं ठूलो जितको अवसर गुमाउँदै हुनुहुन्छ! 🚀\nआजका भविष्यवाणीहरू प्राप्त गर्न /start प्रयोग गर्नुहोस्!"
+  };
+  
   for (const userId in users) {
     try {
       const lang = users[userId].language;
-      let message = "";
-      
-      if (lang === 'hi') {
-        message = "आप बड़ी जीत का मौका गंवा रहे हैं! 🚀\nआज की भविष्यवाणियाँ प्राप्त करने के लिए /start का उपयोग करें!";
-      } else if (lang === 'bn') {
-        message = "আপনি বড় জয়ের সুযোগ হারাচ্ছেন! 🚀\nআজকের ভবিষ্যদ্বাণী পেতে /start ব্যবহার করুন!";
-      } else if (lang === 'ur') {
-        message = "آپ بڑی جیت کا موقع کھو رہے ہیں! 🚀\nآج کی پیشن گوئیاں حاصل کرنے کے لیے /start استعمال کریں!";
-      } else if (lang === 'ne') {
-        message = "तपाईं ठूलो जितको अवसर गुमाउँदै हुनुहुन्छ! 🚀\nआजका भविष्यवाणीहरू प्राप्त गर्न /start प्रयोग गर्नुहोस्!";
-      } else {
-        message = "You're missing your chance to win big! 🚀\nUse /start to get today's predictions now!";
-      }
-      
       await bot.telegram.sendMessage(
         userId,
-        message,
+        messages[lang] || messages.en,
         Markup.inlineKeyboard([
           [Markup.button.callback("🎯 Get Predictions", "get_predictions")]
         ])
@@ -425,23 +549,39 @@ cron.schedule('0 9 * * *', async () => {
   }
 });
 
-// Webhook setup
+// ✅ Webhook setup
 app.post('/webhook', (req, res) => {
   bot.handleUpdate(req.body, res);
 });
 
-app.get('/', (req, res) => {
+// ✅ Stats endpoint
+app.get('/stats', (req, res) => {
+  const postbackStats = {
+    totalRegistrations: Object.keys(postbackData.registrations).length,
+    totalDeposits: Object.keys(postbackData.deposits).length,
+    totalApproved: Object.keys(postbackData.approvedDeposits).length
+  };
+  
   res.json({ 
     status: 'Bot is running!',
-    stats: stats
+    botStats: stats,
+    postbackStats: postbackStats
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Bot running on port ${PORT}`);
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'Sports Prediction Bot is running!',
+    message: 'Add /stats to see statistics'
+  });
 });
 
-// Export for Vercel
+// ✅ Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🤖 Bot running on port ${PORT}`);
+  console.log(`🌐 1Win Postback URL: ${VERCEL_URL}/lwin-postback`);
+});
+
+// ✅ Export for Vercel
 module.exports = app;
